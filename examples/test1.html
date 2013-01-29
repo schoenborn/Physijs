@@ -89,7 +89,7 @@
 		// Materials
 		ground_material = Physijs.createMaterial(
 			new THREE.MeshLambertMaterial({ map: THREE.ImageUtils.loadTexture( 'images/rocks.jpg' ) }),
-			.8, // high friction
+			.1, // high friction
 			.4 // low restitution
 		);
 		ground_material.map.wrapS = ground_material.map.wrapT = THREE.RepeatWrapping;
@@ -100,10 +100,16 @@
 		box_material = Physijs.createMaterial(
 			new THREE.MeshLambertMaterial({ map: THREE.ImageUtils.loadTexture( 'images/plywood.jpg' ) }),
 			.2, // low friction
-			.2 // low restitution
+			.1 // low restitution
 		);
 		box_material.map.wrapS = ground_material.map.wrapT = THREE.RepeatWrapping;
 		box_material.map.repeat.set( .25, .25 );
+		
+		var sphereMaterial = Physijs.createMaterial(
+  			new THREE.MeshLambertMaterial({color: 0xCC0000}),
+			0,
+			.1
+		);
 		
 		// Ground
 		ground = new Physijs.BoxMesh(
@@ -115,10 +121,11 @@
 		scene.add( ground );
 		
 		// Table
+		var tableSize = 100;
 		table = new Physijs.BoxMesh(
-			new THREE.CubeGeometry(50,1,50),
+			new THREE.CubeGeometry(tableSize,1,tableSize),
 			ground_material,
-			10
+			100
 		);
 		
 		table.position.set(ground.position.x,ground.position.y + 10,ground.position.z);
@@ -126,44 +133,46 @@
 			    // `this` is the mesh with the event listener
 			    // other_object is the object `this` collided with
 			    // linear_velocity and angular_velocity are Vector3 objects which represent the velocity of the collision
-			table.setAngularVelocity(new THREE.Vector3(angular_velocity.x, 0, angular_velocity.z));
+			//table.setAngularVelocity(new THREE.Vector3(angular_velocity.x, 0, angular_velocity.z));
+			table.setAngularVelocity(new THREE.Vector3(0, 0, 0));
+			table.setLinearVelocity(new THREE.Vector3(0, 0, 0));
 			
 		}); 
 		table.receiveShadow = true;
 		var bumper1 = new Physijs.BoxMesh(
-				new THREE.CubeGeometry(45,5,5),
+				new THREE.CubeGeometry(tableSize-5,5,5),
 				ground_material				
 		);
 		bumper1.position.x = 0;
 		bumper1.position.y = 2;
-		bumper1.position.z = 22;
+		bumper1.position.z = (tableSize - 5)/2;
 		table.add(bumper1);
 		
 		var bumper2 = new Physijs.BoxMesh(
-				new THREE.CubeGeometry(45,5,5),
+				new THREE.CubeGeometry(tableSize-5,5,5),
 				ground_material				
 		);
 		bumper2.rotation.y = Math.PI / 2;
-		bumper2.position.x = -22;
+		bumper2.position.x = -(tableSize - 5)/2;
 		bumper2.position.y = 2;
 		bumper2.position.z = 0;
 		table.add(bumper2);
 		
 		var bumper3 = new Physijs.BoxMesh(
-				new THREE.CubeGeometry(45,5,5),
+				new THREE.CubeGeometry(tableSize-5,5,5),
 				ground_material				
 		);
 		bumper3.position.x = 2;
 		bumper3.position.y = 2;
-		bumper3.position.z = -22;
+		bumper3.position.z = -(tableSize - 5)/2;
 		table.add(bumper3);
 
 		var bumper4 = new Physijs.BoxMesh(
-				new THREE.CubeGeometry(45,5,5),
+				new THREE.CubeGeometry(tableSize-5,5,5),
 				ground_material				
 		);
 		bumper4.rotation.y = Math.PI / 2;
-		bumper4.position.x = 22;
+		bumper4.position.x = (tableSize - 5)/2;
 		bumper4.position.y = 2;
 		bumper4.position.z = 2;
 		table.add(bumper4);
@@ -180,11 +189,17 @@
 		scene.addConstraint(constraint);		
 
 		for ( var i = 0; i < 1; i++ ) {
-			box = new Physijs.BoxMesh(
-				new THREE.CubeGeometry( 4, 4, 4 ),
-				box_material
-				
-			);
+			//box = new Physijs.BoxMesh(
+			//	new THREE.CubeGeometry( 4, 4, 4 ),
+			//	box_material,
+			//	30			
+			//);
+			box = new Physijs.SphereMesh(
+						new THREE.SphereGeometry( 3 , 32, 32),
+						sphereMaterial,
+						100
+						
+			);	
 			box.position.set(0,20,0
 				//Math.random() * 50 - 25,
 				//50 + Math.random() * 5,
@@ -195,11 +210,11 @@
 				Math.random() * Math.PI * 2,
 				Math.random() * Math.PI * 2
 			);
-			box.scale.set(
-				Math.random() * 1 + .5,
-				Math.random() * 1 + .5,
-				Math.random() * 1 + .5
-			);
+			//box.scale.set(
+			//	Math.random() * 1 + .5,
+			//	Math.random() * 1 + .5,
+			//	Math.random() * 1 + .5
+			//);
 			box.castShadow = true;
 			scene.add( box );
 			boxes.push( box );
@@ -212,34 +227,43 @@
 	};
 	
 	function onDocumentKeyDown(event){
-		var delta = 200;
+		var lowLimit = -.2;
+		var upperLimit = .2;
+		var velocity = 5;
+		var maxForce = 5000;	
 		event = event || window.event;
 		var keycode = event.keyCode;
 		switch(keycode){
 			case 37 : //left arrow
 				constraint.configureAngularMotor(0,//axis = x
-							-.2,//lower limit radians
-							.2,//upper limit radians
-							-50,//velocity
-							5000//max force
+							lowLimit,
+							upperLimit,
+							-velocity,
+							maxForce
 				);	
 				constraint.enableAngularMotor(0);
 			break;
-			case 39 : //left arrow 
-				constraint.configureAngularMotor(0,-.2,.2,50,5000);	
+			case 39 : //right arrow 
+				constraint.configureAngularMotor(0,lowLimit,
+							upperLimit,
+							velocity,
+							maxForce);	
 				constraint.enableAngularMotor(0);
 			break;
 			case 38 : //up arrow
 				constraint.configureAngularMotor(2,//axis = x
-							-.2,//lower limit radians
-							.2,//upper limit radians
-							-50,//velocity
-							5000//max force
+							lowLimit,
+							upperLimit,
+							-velocity,
+							maxForce
 				);	
 				constraint.enableAngularMotor(2);
 			break;
 			case 40 : //down arrow 
-				constraint.configureAngularMotor(2,-.2,.2,50,5000);	
+				constraint.configureAngularMotor(2,lowLimit,
+							upperLimit,
+							velocity,
+							maxForce);	
 				constraint.enableAngularMotor(2);
 			break;
 		};
@@ -250,10 +274,16 @@
 		event = event || window.event;
 		var keycode = event.keyCode;
 		switch(keycode){
-			case 37 : //left arrow 向左箭头
+			case 37 : //left arrow
 				constraint.disableAngularMotor(0);
 			break;
-			case 39 : //right arrow 向左箭头
+			case 39 : //right arrow
+				constraint.disableAngularMotor(0);
+			break;
+			case 38 : //up arrow 
+				constraint.disableAngularMotor(0);
+			break;
+			case 40 : //down arrow
 				constraint.disableAngularMotor(0);
 			break;
 		};
