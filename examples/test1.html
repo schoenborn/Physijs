@@ -21,7 +21,8 @@
 	var initScene, render, applyForce, setMousePosition, mouse_position,
 		ground_material, box_material,
 		projector, renderer, render_stats, physics_stats, scene, ground,
-		table, constraint, constraint_x, constraint_y, light, camera, box, boxes = [];
+		table, constraint, constraint_x, constraint_y, light, camera, box, boxes = [],
+		lastX, lastY;
 	
 	initScene = function() {
 		projector = new THREE.Projector;
@@ -220,12 +221,34 @@
 			boxes.push( box );
 		}
 		
-		renderer.domElement.addEventListener( 'mousemove', setMousePosition );
+		//renderer.domElement.addEventListener( 'mousemove', setMousePosition );
+
+		renderer.domElement.addEventListener( 'mousemove', mouseMotor );
 
 		requestAnimationFrame( render );
 		scene.simulate();
 	};
 	
+	function motorControl(motor,switchOn,direction){
+		var lowLimit = -.2;
+		var upperLimit = .2;
+		var velocity = 5;
+		var maxForce = 5000;
+		
+		if(switchOn){
+			constraint.configureAngularMotor(motor,//axis = x
+						lowLimit,
+						upperLimit,
+						velocity*direction,
+						maxForce
+			);
+			constraint.enableAngularMotor(motor);
+		}
+		else{
+			constraint.disableAngularMotor(motor);	
+		}
+	};
+
 	function onDocumentKeyDown(event){
 		var lowLimit = -.2;
 		var upperLimit = .2;
@@ -235,57 +258,36 @@
 		var keycode = event.keyCode;
 		switch(keycode){
 			case 37 : //left arrow
-				constraint.configureAngularMotor(0,//axis = x
-							lowLimit,
-							upperLimit,
-							-velocity,
-							maxForce
-				);	
-				constraint.enableAngularMotor(0);
-			break;
-			case 39 : //right arrow 
-				constraint.configureAngularMotor(0,lowLimit,
-							upperLimit,
-							velocity,
-							maxForce);	
-				constraint.enableAngularMotor(0);
-			break;
+				motorControl(0,true,-1); // motor number, true = on, direction
+				break;
+			case 39 : //right arrow
+				motorControl(0,true,1); 
+				break;
 			case 38 : //up arrow
-				constraint.configureAngularMotor(2,//axis = x
-							lowLimit,
-							upperLimit,
-							-velocity,
-							maxForce
-				);	
-				constraint.enableAngularMotor(2);
-			break;
-			case 40 : //down arrow 
-				constraint.configureAngularMotor(2,lowLimit,
-							upperLimit,
-							velocity,
-							maxForce);	
-				constraint.enableAngularMotor(2);
-			break;
+				motorControl(2,true,-1);
+				break;
+			case 40 : //down arrow
+				motorControl(2,true,1); 
+				break;
 		};
 	};
 
 	function onDocumentKeyUp(event){
-		var delta = 200;
 		event = event || window.event;
 		var keycode = event.keyCode;
 		switch(keycode){
 			case 37 : //left arrow
-				constraint.disableAngularMotor(0);
-			break;
+				motorControl(0,false); //motor num, false = off
+				break;
 			case 39 : //right arrow
-				constraint.disableAngularMotor(0);
-			break;
+				motorControl(0,false);
+				break;
 			case 38 : //up arrow 
-				constraint.disableAngularMotor(0);
-			break;
+				motorControl(2,false);
+				break;
 			case 40 : //down arrow
-				constraint.disableAngularMotor(0);
-			break;
+				motorControl(2,false);
+				break;
 		};
 	};
 
@@ -297,6 +299,36 @@
 		render_stats.update();
 	};
 	
+	function mouseMotor(event){
+		
+		var newX = event.clientX;
+		var directionX = newX - lastX;
+		if(directionX == 0)
+			motorControl(0,false);
+		else{
+			if(directionX < 0){
+				motorControl(0,true,-1); // motor number, true = on, direction			
+			}
+			if(directionX > 0)
+				motorControl(0,true,1); // motor number, true = on, direction
+		};
+		lastX = newX;
+
+		var newY = event.clientY;
+		var directionY = newY - lastY;
+		if(directionY == 0)
+			motorControl(2,false);
+		else{
+			if(directionY < 0){
+				motorControl(2,true,-1); // motor number, true = on, direction			
+			}
+			if(directionY > 0)
+				motorControl(2,true,1); // motor number, true = on, direction
+		};
+		lastY = newY;
+		
+	};
+
 	setMousePosition = function( evt ) {
 		// Find where mouse cursor intersects the ground plane
 		var vector = new THREE.Vector3(
